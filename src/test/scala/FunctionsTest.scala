@@ -10,6 +10,7 @@ import org.scalatest.FunSpec
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.prop.PropertyChecks
+import org.scalacheck.Gen
 
 class FunctionProvider {
   // Int ⇒ Int == Function1[Int, Int]
@@ -26,9 +27,9 @@ class FunctionProvider {
   def sumCurried(addend1: Int)(addend2: Int): Int =
     addend1 + addend2
 
-  // Int ⇒ String ⇒ T[String] == Function1[Int, Function1[String, T[String]]]
-  def textNTimesAsXCurried[T[String]](
-    stringSeqTransformer: Seq[String] ⇒ T[String] = (seq: Seq[String]) ⇒ seq): Int ⇒ String ⇒ T[String] =
+  // Int ⇒ String ⇒ T == Function1[Int, Function1[String, T]]
+  def textNTimesAsXCurried[T](
+    stringSeqTransformer: Seq[String] ⇒ T = (seq: Seq[String]) ⇒ seq): Int ⇒ String ⇒ T =
     (times: Int) ⇒ (text: String) ⇒ stringSeqTransformer(textNTimesFunction(times, text))
 }
 
@@ -43,11 +44,11 @@ class FunctionUser(val functionProvider: FunctionProvider) {
   }
 
   def ballmer = {
-    val multiplyTextNTimesAsListCurried = functionProvider.textNTimesAsXCurried {
-      (seq: Seq[String]) ⇒ seq.toList
+    val textNTimesAsStringCurried = functionProvider.textNTimesAsXCurried {
+      (seq: Seq[String]) ⇒ seq.mkString(", ")
     }
-    val text14TimesAsList = multiplyTextNTimesAsListCurried(14)
-    text14TimesAsList("developers")
+    val text14TimesAsString = textNTimesAsStringCurried(14)
+    text14TimesAsString("developers")
   }
 }
 
@@ -84,9 +85,9 @@ class FunctionsTest extends FunSpec with ShouldMatchers with MockitoSugar with P
       when(textNTimesFunctionMock.apply(16, "na")).thenReturn(1 to 16 map { _ ⇒ "na" })
 
       val functionUser = new FunctionUser(functionProviderMock)
-      functionUser.batman should be {
+      functionUser.batman should be(
         (1 to 16 map { _ ⇒ "na" }) :+ "batman"
-      }
+      )
 
       verify(functionProviderMock).textNTimesFunction
       verify(textNTimesFunctionMock).apply(16, "na")
@@ -115,15 +116,32 @@ class FunctionsTest extends FunSpec with ShouldMatchers with MockitoSugar with P
       functionUser.answer should be(42)
 
       verify(functionProviderSpy).sumCurried(19)(23)
-      val nineteenFunctionCaptor = ArgumentCaptor.forClass(classOf[Function1[Int, Int]])
-      verify(functionProviderSpy).applies23ToFunction(nineteenFunctionCaptor.capture.apply)
+      val addToNineteenFunctionCaptor = ArgumentCaptor.forClass(classOf[Function1[Int, Int]])
+      verify(functionProviderSpy).applies23ToFunction(addToNineteenFunctionCaptor.capture.apply)
       forAll { (n: Int) ⇒
-        nineteenFunctionCaptor.getValue.apply(n) should be(19 + n)
+        addToNineteenFunctionCaptor.getValue.apply(n) should be(19 + n)
       }
     }
 
     it("likes developers") {
-      // TODO
+      val functionProviderMock = mock[FunctionProvider]
+      when(functionProviderMock.textNTimesAsXCurried(any[Function1[Seq[String], String]].apply)).thenReturn(
+        (i: Int) ⇒ (str: String) ⇒ 1 to 14 map { _ ⇒ "developers" } mkString ", "
+      )
+
+      val functionUser = new FunctionUser(functionProviderMock)
+      functionUser.ballmer should be(
+        "developers, developers, developers, developers, developers, developers, developers, " +
+          "developers, developers, developers, developers, developers, developers, developers"
+      )
+
+      val stringSeqToStringFunctionCaptor = ArgumentCaptor.forClass(classOf[Function1[Seq[String], String]])
+      verify(functionProviderMock).textNTimesAsXCurried(stringSeqToStringFunctionCaptor.capture.apply)
+      val stringSeqToStringFunction = stringSeqToStringFunctionCaptor.getValue
+      val stringListGenerator = Gen.listOf(Gen.alphaStr)
+      forAll(stringListGenerator) { (stringLists: List[String]) ⇒
+        stringSeqToStringFunction(stringLists) should be(stringLists.mkString(", "))
+      }
     }
   }
 }
