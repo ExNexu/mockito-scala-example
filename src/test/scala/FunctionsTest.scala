@@ -100,10 +100,10 @@ class FunctionsTest extends FunSpec with ShouldMatchers with MockitoSugar with P
       val functionUser = new FunctionUser(functionProviderMock)
       functionUser.answer should be(42)
 
-      val nineteenFunctionCaptor = ArgumentCaptor.forClass(classOf[Function1[Int, Int]])
-      verify(functionProviderMock).applies23ToFunction(nineteenFunctionCaptor.capture.apply)
+      val addToNineteenFunctionCaptor = ArgumentCaptor.forClass(classOf[Function1[Int, Int]])
+      verify(functionProviderMock).applies23ToFunction(addToNineteenFunctionCaptor.capture.apply)
       when(functionProviderMock.sumCurried(19)(1)).thenReturn(20)
-      nineteenFunctionCaptor.getValue.apply(1) should be(20)
+      addToNineteenFunctionCaptor.getValue.apply(1) should be(20)
       verify(functionProviderMock).sumCurried(19)(1)
     }
 
