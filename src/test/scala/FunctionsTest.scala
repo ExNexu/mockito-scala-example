@@ -86,7 +86,25 @@ class FunctionsTest extends FunSpec with ShouldMatchers with MockitoSugar with P
 
       val functionUser = new FunctionUser(functionProviderMock)
       functionUser.batman should be(
-        (1 to 16 map { _ ⇒ "na" }) :+ "batman"
+        Seq(
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "na",
+          "batman"
+        )
       )
 
       verify(functionProviderMock).textNTimesFunction
