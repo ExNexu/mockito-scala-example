@@ -110,7 +110,6 @@ class FunctionsTest extends FunSpec with ShouldMatchers with MockitoSugar with P
     it("can calculate the answer (with a spy)") {
       val functionProvider = new FunctionProvider
       val functionProviderSpy = spy(functionProvider)
-      doReturn(42).when(functionProviderSpy).sumCurried(19)(23)
 
       val functionUser = new FunctionUser(functionProviderSpy)
       functionUser.answer should be(42)
